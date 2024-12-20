@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" style="backdrop-filter: blur;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
+</head>
+
+<body style="background: linear-gradient(to bottom, #6a0dad, #f4f4f9); font-family: Arial, sans-serif;             background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;">
+    <div class="ui container" style="margin-top: 50px;">
+        <h1 class="ui center aligned header" style="color: ivory;">To Do App</h1>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="ui success message">
+            <ul class="list">
+                {% for message in messages %}
+                <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Form to Add Todo -->
+        <form class="ui form" action="/add" method="post" style="background: #fff; padding: 20px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <div class="two fields">
+                <div class="field">
+                    <label style="font-weight: bold;">Todo Title</label>
+                    <input type="text" name="title" placeholder="Enter Todo..." required>
+                </div>
+                <div class="field">
+                    <label style="font-weight: bold;">Priority</label>
+                    <select name="priority" class="ui dropdown">
+                        <option value="Low" selected>Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+            </div>
+            <button class="ui blue button" type="submit">Add</button>
+        </form>
+
+        <!-- Search Form -->
+        <form class="ui form" action="/search" method="get" style="margin-top: 20px; background: #fff; padding: 20px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <div class="field">
+                <div class="ui action input">
+                    <input type="text" name="query" placeholder="Search tasks..." value="{{ search_query|default('') }}">
+                    <button class="ui green button" type="submit">Search</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Bulk Actions -->
+        <div class="ui buttons" style="margin-top: 20px;">
+            <a href="/mark_all/complete" class="ui teal button">Mark All Complete</a>
+            <a href="/mark_all/incomplete" class="ui orange button">Mark All Incomplete</a>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="ui progress" id="progress-bar" style="margin-top: 20px;">
+            <div class="bar"></div>
+            <div class="label">Task Completion Progress</div>
+        </div>
+
+        <hr style="margin: 40px 0;">
+
+        <!-- Todo List -->
+        <div class="ui divided items">
+            <div class="ui grid">
+                <div class="eight wide column">
+                    <h3 style="color: #3b3b58;">Pending Tasks</h3>
+                    {% for todo in todo_list if not todo.complete %}
+                    <div class="ui segment" style="background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                        <p class="ui big header" style="color: #3b3b58;">
+                            {{ todo.id }} | {{ todo.title }}
+                            <span class="ui {{ todo.priority|lower }} label">{{ todo.priority }}</span>
+                        </p>
+                        <span class="ui gray label">Not Complete</span>
+
+                        <!-- Buttons for Toggle Complete and Delete -->
+                        <div class="ui buttons">
+                            <a class="ui blue button" href="/update/{{ todo.id }}">Toggle Complete</a>
+                            <a class="ui red button" href="/delete/{{ todo.id }}">Delete</a>
+                        </div>
+
+                        <!-- Rename Form -->
+                        <form action="{{ url_for('rename', todo_id=todo.id) }}" method="POST" style="margin-top: 10px;">
+                            <input type="text" name="new_title" placeholder="Rename..." value="{{ todo.title }}">
+                            <button class="ui yellow button" type="submit">Rename</button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="eight wide column">
+                    <h3 style="color: #3b3b58;">Completed Tasks</h3>
+                    {% for todo in todo_list if todo.complete %}
+                    <div class="ui segment" style="background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                        <p class="ui big header" style="color: #3b3b58;">
+                            {{ todo.id }} | {{ todo.title }}
+                            <span class="ui {{ todo.priority|lower }} label">{{ todo.priority }}</span>
+                        </p>
+                        <span class="ui green label">Completed</span>
+                        <a class="ui red button" href="/delete/{{ todo.id }}">Delete</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="ui pagination menu" style="margin-top: 20px;">
+            {% if pagination.has_prev %}
+            <a class="item" href="/?page={{ pagination.prev_num }}">Previous</a>
+            {% else %}
+            <div class="disabled item">Previous</div>
+            {% endif %}
+
+            {% for page in range(1, pagination.pages + 1) %}
+            <a class="item {% if page == pagination.page %}active{% endif %}" href="/?page={{ page }}">{{ page }}</a>
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <a class="item" href="/?page={{ pagination.next_num }}">Next</a>
+            {% else %}
+            <div class="disabled item">Next</div>
+            {% endif %}
+        </div>
+
+        <!-- Logout Button -->
+        <a href="/logout" class="ui red button" style="float: right; margin-top: 30px;">Logout</a>
+    </div>
+
+    <script>
+        // Initialize the progress bar
+        const totalTasks = {{ todo_list|length }};
+        const completedTasks = {{ todo_list|selectattr('complete', 'eq', True)|list|length }};
+        const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+        const progressBar = document.getElementById('progress-bar');
+        progressBar.querySelector('.bar').style.width = progress + '%';
+        progressBar.classList.add(progress === 100 ? 'success' : '');
+    </script>
+</body>
+
+</html>
