@@ -3,7 +3,7 @@ Steps to Set Up the Development Environment
 
 Clone the project repository:
 ```console
-git clone https://github.com/your-username/todo-app.git
+https://github.com/Almira2303/flask-todo_almira_jester.git
 ```
 Navigate into the project directory:
 ```
