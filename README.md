@@ -10,13 +10,14 @@ Navigate into the project directory:
 cd todo-app
 ```
 Dependencies and Requirements
+```
 Python (3.8+)
 Flask (2.3+)
 Flask-SQLAlchemy
 Flask-Bcrypt
 Bleach
 SQLite database (sqlite:///new.sqlite as defined in the project)
-
+```
 You can install the necessary dependencies using pip:
 ```
 pip install -r requirements.txt
